@@ -1,19 +1,46 @@
-import fitz  # PRUEBA
-from langchain.sql_database import SQLDatabase
 
-# 1. Cargar la bbdd con langchain
-db = SQLDatabase.from_uri("my:///pruebascti.db")
+import pyodbc
+import pandas as pd
 
-# 1.3 Leer Pdfs y extraer el texto (Prueba)
-pdf_data = []
-rows = db._execute("SELECT * FROM `pdfs`")
-for row in rows:
-    with fitz.open(row[1]) as doc:
-        pdf_data.append({"id": row[0], "text": "\n\n".join(page.getText() for page in doc)})
+server = 'desarrollo.gcalidad.com'
+bd = 'CTIPruebas'
+user = ''
+password = ''
 
-# 1.4 Cerrar conexión (Prueba)
-db.close()
 
-# Imprimir los listados de cadenas de texto de pdf_data
-for pdf in pdf_data:
-    print(f"ID: {pdf['id']}\nTEXT: {pdf['text']}\n")
+
+try:
+    
+    conexion = pyodbc.connect(
+        'DRIVER={ODBC Driver 17 for SQL server};SERVER='+server+';DATABASE='+bd+';UID='+user+';PWD='+password
+    )
+
+    print('Conexión exitosa')
+
+except:
+    print('Error al intentar conectarse')
+
+cursor = conexion.cursor()
+
+query_pdf = "Select * FROM T_BotFicheros"
+
+df_pdf = pd.read_sql(query_pdf, conexion)
+#df_pdf.info()
+
+#for index, row in df_pdf.iterrows():
+#    print(f"FicheroID: {row['FicheroID']}, FicheroRuta: {row['FicheroRuta']}")
+
+for index, row in df_pdf.iterrows():
+    try:
+        #with open({row['FicheroRuta']}, "rb") as file:
+        ruta_archivo = str(row['FicheroRuta'])
+        with open(ruta_archivo, "rb") as file:
+            pdf_content = file.read()
+            print(pdf_content)
+
+    except FileNotFoundError:
+        print("El archivo no fue encontrado en la ubicación especificada.")
+
+    except Exception as e:
+        print("Ocurrió un error al intentar cargar el archivo: ", e)
+
